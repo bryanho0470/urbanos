@@ -1,5 +1,10 @@
+from operator import le
+from tarfile import LENGTH_NAME
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 def dashboard_page(navigate):
     st.title("Dashboard")
@@ -45,10 +50,60 @@ def dashboard_page(navigate):
                 st.subheader("Data Preview:")
                 st.dataframe(df)
 
-                #Show chart if certain cloumns exist
-                if "timestamp" in df.columns and "consumption_kwh" in df.columns:
-                    st.subheader("Energy Consumption Chart:")
-                    st.line_chart(df.set_index("timestamp")["consumption_kwh"])
+
+   
+                fig1 = px.line(df, x="Reading Date", y="Active Power (kWh)", title="Energy Consumption Over Time")
+                st.plotly_chart(fig1, use_container_width=True)
+                fig4 = px.line(df, x="Reading Date", y="Reactive Power (kVARh)", title="Reactive Power Over Time")
+                st.plotly_chart(fig4, use_container_width=True)
+                fig2 = px.bar(df,x="Reading Date", y="Active Power (kWh)", title="Energy Consumption Distribution")
+                fig2.update_traces(marker_color="green") 
+                st.plotly_chart(fig2, use_container_width=True)
+                fig3 = px.bar(df, x="Reading Date", y="Amount", title="Total Payment")
+                st.plotly_chart(fig3, use_container_width=True)
+
+                combo_fig = make_subplots(
+                    specs=[[{"secondary_y": True}]],
+                    shared_xaxes=True,
+                    subplot_titles=("Energy Consumption and Amount",),
+                )
+
+                combo_fig.add_trace(
+                    go.Bar(
+                        x=df["Reading Date"],
+                        y=df["Active Power (kWh)"],
+                        name="Energy Consumption",
+                        marker_color="green",
+                    ),
+                    secondary_y=False,
+                )
+
+                combo_fig.add_trace(
+                    go.Scatter(
+                        x=df["Reading Date"],
+                        y=df["Reactive Power (kVARh)"],
+                        name="Reactive Power",
+                        mode="lines+markers",
+                        line=dict(color="orange", width=2),
+                    ),
+                    secondary_y=True,
+                )
+
+                combo_fig.update_layout(
+                    title_text="Energy Consumption and Amount",
+                    xaxis_title="Reading Date",
+                    yaxis_title="Active Power (kWh)",
+                    yaxis2_title="Reactive Power (kVARh)",
+                    legend=dict(x=0.01, y=0.99),
+                    height=600,
+                )
+
+                combo_fig.update_yaxes(title_text="Reactive Power (kVARh)", secondary_y=True, range=[0,20000])
+                combo_fig.update_yaxes(title_text="Active Power (kWh)", secondary_y=False, range=[0, 60000])
+
+                st.plotly_chart(combo_fig, use_container_width=True)
+                # Show chart if certain columns exist
+
             else:
                 st.info("Please upload a CSV file to see the data.")
 
